@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记忆填空复习工具</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+
+        header, main, footer {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            color: #2c3e50;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #keywords-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .keyword {
+            background-color: #ecf0f1;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .keyword.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        #exercise-content {
+            margin-bottom: 20px;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>记忆填空复习工具</h1>
+        <p>输入您的学习资料,生成填空题进行复习</p>
+    </header>
+
+    <main>
+        <section id="input-section">
+            <textarea id="learning-material" placeholder="在此输入您的学习资料..."></textarea>
+            <button id="generate-btn">生成填空题</button>
+        </section>
+
+        <section id="keywords-section">
+            <h2>关键词选择</h2>
+            <div id="keywords-list"></div>
+            <button id="start-exercise-btn">开始填空题</button>
+        </section>
+
+        <section id="exercise-section">
+            <h2>填空练习</h2>
+            <div id="exercise-content"></div>
+            <div id="answer-inputs"></div>
+            <button id="check-btn">检查答案</button>
+        </section>
+
+        <section id="feedback-section">
+            <h2>反馈</h2>
+            <div id="feedback-content"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>联系我们: example@email.com</p>
+        <a href="#">使用条款</a> | <a href="#">隐私政策</a>
+    </footer>
+
+    <script>
+        // 获取DOM元素
+        const learningMaterial = document.getElementById('learning-material');
+        const generateBtn = document.getElementById('generate-btn');
+        const keywordsList = document.getElementById('keywords-list');
+        const exerciseContent = document.getElementById('exercise-content');
+        const answerInput = document.getElementById('answer-input');
+        const checkBtn = document.getElementById('check-btn');
+        const feedbackContent = document.getElementById('feedback-content');
+
+        let keywords = [];
+        let currentExercise = null;
+
+        // 修改生成填空题的函数
+        generateBtn.addEventListener('click', () => {
+            const text = learningMaterial.value;
+            if (text.trim() === '') {
+                alert('请先输入学习资料');
+                return;
+            }
+            keywords = extractKeywords(text);
+            if (keywords.length === 0) {
+                alert('未能提取到合适的关键词，请尝试输入更多内容');
+                return;
+            }
+            displayKeywords();
+            generateExercise();
+        });
+
+        // 修改提取关键词的函数
+        function extractKeywords(text) {
+            const words = text.match(/[\u4e00-\u9fa5a-zA-Z]+/g) || [];
+            return [...new Set(words)].filter(word => word.length > 1);
+        }
+
+        // 添加新的开始填空题按钮事件监听器
+        const startExerciseBtn = document.getElementById('start-exercise-btn');
+        startExerciseBtn.addEventListener('click', () => {
+            const selectedKeywords = Array.from(document.querySelectorAll('.keyword.selected')).map(el => el.textContent);
+            if (selectedKeywords.length === 0) {
+                alert('请至少选择一个关键词');
+                return;
+            }
+            generateExercise(selectedKeywords);
+            document.getElementById('keywords-section').style.display = 'none';
+            document.getElementById('exercise-section').style.display = 'block';
+        });
+
+        // 修改生成练习的函数
+        function generateExercise(selectedKeywords) {
+            const text = learningMaterial.value;
+            currentExercise = text;
+            const answerInputsContainer = document.getElementById('answer-inputs');
+            answerInputsContainer.innerHTML = '';
+
+            selectedKeywords.forEach((keyword, index) => {
+                currentExercise = currentExercise.replace(new RegExp(keyword, 'g'), `____${index}____`);
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `空格 ${index + 1}`;
+                input.dataset.index = index;
+                answerInputsContainer.appendChild(input);
+            });
+
+            exerciseContent.textContent = currentExercise;
+            answerInputsContainer.firstChild.focus(); // 聚焦到第一个输入框
+        }
+
+        // 修改检查答案的函数
+        checkBtn.addEventListener('click', () => {
+            const inputs = document.querySelectorAll('#answer-inputs input');
+            const correctAnswers = Array.from(document.querySelectorAll('.keyword.selected')).map(el => el.textContent);
+            let allCorrect = true;
+
+            inputs.forEach((input, index) => {
+                const userAnswer = input.value.trim();
+                const correctAnswer = correctAnswers[index];
+
+                if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                    input.style.backgroundColor = 'lightgreen';
+                } else {
+                    input.style.backgroundColor = 'lightpink';
+                    allCorrect = false;
+                }
+            });
+
+            if (allCorrect) {
+                feedbackContent.textContent = '全部正确!';
+                feedbackContent.style.color = 'green';
+            } else {
+                feedbackContent.textContent = '有错误，请检查标红的答案。';
+                feedbackContent.style.color = 'red';
+            }
+        });
+
+        // 修改显示关键词的函数
+        function displayKeywords() {
+            console.log('开始显示关键词');
+            keywordsList.innerHTML = '';
+            keywords.forEach(keyword => {
+                const span = document.createElement('span');
+                span.textContent = keyword;
+                span.classList.add('keyword');
+                span.addEventListener('click', () => {
+                    span.classList.toggle('selected');
+                });
+                keywordsList.appendChild(span);
+            });
+            console.log('关键词显示完成');
+        }
+    </script>
+</body>
+</html>
